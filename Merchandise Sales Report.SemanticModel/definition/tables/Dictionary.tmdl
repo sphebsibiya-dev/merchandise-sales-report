@@ -1,0 +1,32 @@
+table Dictionary
+	isHidden
+	lineageTag: acdea8da-d959-4bd7-a58c-cffe67fbf875
+
+	column Column1
+		dataType: string
+		lineageTag: eadebdad-7fe6-4b93-a4de-8af9b108453b
+		summarizeBy: none
+		sourceColumn: Column1
+
+		annotation SummarizationSetBy = Automatic
+
+	column Column2
+		dataType: string
+		lineageTag: f4e00ea2-1d43-4ceb-a46f-3df3f1d41547
+		summarizeBy: none
+		sourceColumn: Column2
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Dictionary = m
+		mode: import
+		source =
+				let
+				  Source = Excel.Workbook(File.Contents("C:\Users\Sphesihle Sibiya\Power Bi\Merchandise Sales Dataset\WgsUBfjr5GWNOHRpFmBP6oKmUDm5T53pipHgRQhh\Onyx Data -DataDNA Dataset Challenge - Merchandise Sales Dataset - January 2025.xlsx"), null, true),
+				  #"Navigation 1" = Source{[Item = "Dictionary", Kind = "Sheet"]}[Data],
+				  #"Changed column type" = Table.TransformColumnTypes(#"Navigation 1", {{"Column1", type text}, {"Column2", type text}})
+				in
+				  #"Changed column type"
+
+	annotation PBI_ResultType = Table
+

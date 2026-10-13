@@ -1,0 +1,9 @@
+relationship 2a4014b0-6a44-469b-b17b-818fff28c056
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Data.'Order Date'
+	toColumn: LocalDateTable_3ec40eff-8e57-44f2-b907-05fec648ce5e.Date
+
+relationship 'Data Order Date to Date'
+	fromColumn: Data.'Order Date'
+	toColumn: Date.Date
+

@@ -1,0 +1,76 @@
+/// Calendar table, one row per day, covering every month that contains an order. Use it for all time-based filtering and trends.
+table Date
+	lineageTag: e4a1e2fb-66d4-403b-8fe9-2ed58bbf0c5d
+	dataCategory: Time
+
+	/// Calendar day; key of the Date table.
+	column Date
+		dataType: dateTime
+		isUnique
+		isKey
+		formatString: d MMM yyyy
+		lineageTag: 30af740e-1dcf-4f21-8d5e-6dc8dbbd8dbe
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+	/// Month label such as Nov 2023, sorted chronologically.
+	column Month
+		dataType: string
+		lineageTag: 9d4af058-1902-4bfb-b259-c16fb9e744a6
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month]
+		sortByColumn: 'Month Start'
+
+	/// First day of the month; used to sort Month.
+	column 'Month Start'
+		dataType: dateTime
+		isHidden
+		formatString: MMM yyyy
+		lineageTag: 46917f3d-006d-4fd4-a233-5e4fa84aff13
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month Start]
+
+	/// Day of week, Mon to Sun.
+	column Weekday
+		dataType: string
+		lineageTag: 1eca17cd-ddb8-41ed-aecb-4d92f6e0390c
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Weekday]
+		sortByColumn: 'Weekday No'
+
+	/// Day of week number, Monday = 1; used to sort Weekday.
+	column 'Weekday No'
+		dataType: int64
+		isHidden
+		lineageTag: 118fbc2e-a6b2-4f1e-95c3-84662b39e1aa
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Weekday No]
+
+	/// True when the month's last day falls within the order data. November 2024 (4 days of data) is False. November 2023 is True although orders start on the 5th.
+	column 'Is Complete Month'
+		dataType: boolean
+		lineageTag: 0dd67bad-4851-428f-b9b6-e21d804c5585
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Is Complete Month]
+
+	partition Date = calculated
+		mode: import
+		source =
+				VAR FirstOrder = MIN ( Data[Order Date] )
+				VAR LastOrder = MAX ( Data[Order Date] )
+				RETURN
+				    ADDCOLUMNS (
+				        CALENDAR ( DATE ( YEAR ( FirstOrder ), MONTH ( FirstOrder ), 1 ), EOMONTH ( LastOrder, 0 ) ),
+				        "Month", FORMAT ( [Date], "MMM yyyy" ),
+				        "Month Start", DATE ( YEAR ( [Date] ), MONTH ( [Date] ), 1 ),
+				        "Weekday", FORMAT ( [Date], "ddd" ),
+				        "Weekday No", WEEKDAY ( [Date], 2 ),
+				        "Is Complete Month", EOMONTH ( [Date], 0 ) <= LastOrder
+				    )
+

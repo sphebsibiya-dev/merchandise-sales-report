@@ -1,0 +1,366 @@
+table Data
+	lineageTag: 2831593c-0126-4353-8a4b-98986f3b0cbe
+
+	/// Total amount charged to buyers, including international shipping fees. Sum of the Total Sales column.
+	measure Sales = SUM ( Data[Total Sales] )
+		formatString: $#,##0
+		displayFolder: Sales
+		lineageTag: 98f5f3a6-13e2-4068-869a-42dd90a10241
+
+	/// Sales excluding shipping fees: price tag times quantity.
+	measure 'Product Revenue' = SUMX ( Data, Data[Sales Price] * Data[Quantity] )
+		formatString: $#,##0
+		displayFolder: Sales
+		lineageTag: a8d2e27e-5ee1-4c20-b609-7fe055dc3c4e
+
+	/// International shipping fees charged. The fee applies per unit, so it is Shipping Charges times Quantity.
+	measure 'Shipping Revenue' = SUMX ( Data, Data[Shipping Charges] * Data[Quantity] )
+		formatString: $#,##0
+		displayFolder: Shipping
+		lineageTag: db307aea-5bd9-4742-883e-07389593f1ef
+
+	/// Number of orders; the data has one row per order.
+	measure Orders = COUNTROWS ( Data )
+		formatString: #,##0
+		displayFolder: Sales
+		lineageTag: 1db2bc00-bf46-46ed-969f-86dd58acd6a9
+
+	/// Total quantity of items bought.
+	measure 'Units Sold' = SUM ( Data[Quantity] )
+		formatString: #,##0
+		displayFolder: Sales
+		lineageTag: 25d15a08-87f7-4891-8b3f-1b65d8b99fc1
+
+	/// Sales divided by number of orders, shipping included.
+	measure 'Avg Order Value' = DIVIDE ( [Sales], [Orders] )
+		formatString: $#,##0.00
+		displayFolder: Sales
+		lineageTag: 1e47ded6-33a2-4ee8-bca9-85a47b242cc7
+
+	/// Average quantity per order.
+	measure 'Units per Order' = DIVIDE ( [Units Sold], [Orders] )
+		formatString: 0.00
+		displayFolder: Buyers
+		lineageTag: d18c30d5-8d33-4aa6-a72c-e031bd10ded6
+
+	/// Average order rating on a 1 to 5 scale.
+	measure 'Avg Rating' = AVERAGE ( Data[Rating] )
+		formatString: 0.00
+		displayFolder: Reviews
+		lineageTag: 1f0833bb-23f7-421f-be45-eb355ce99a6d
+
+	/// Share of orders rated 4 or 5.
+	measure 'Positive Review %' = DIVIDE ( CALCULATE ( [Orders], KEEPFILTERS ( Data[Rating] >= 4 ) ), [Orders] )
+		formatString: 0.0%
+		displayFolder: Reviews
+		lineageTag: 12159188-4304-4250-adc0-cfd220b9531a
+
+	/// Share of orders rated 1 or 2.
+	measure 'Negative Review %' = DIVIDE ( CALCULATE ( [Orders], KEEPFILTERS ( Data[Rating] <= 2 ) ), [Orders] )
+		formatString: 0.0%
+		displayFolder: Reviews
+		lineageTag: 71688dfb-c1d2-43e6-a2f8-db136f84e183
+
+	/// Proxy for discount impact: share of orders whose review praises discount deals or affordability. The data has no discount field; every product has a single price.
+	measure 'Price Praise %' =
+			DIVIDE (
+			    CALCULATE (
+			        [Orders],
+			        KEEPFILTERS (
+			            Data[Review]
+			                IN {
+			                    "Discount deals was greatly appreciated.",
+			                    "The product was affordable here compared to other brands."
+			                }
+			        )
+			    ),
+			    [Orders]
+			)
+		formatString: 0.0%
+		displayFolder: Reviews
+		lineageTag: 3d037b1a-a9a1-42ca-9d47-e522a4cb60b9
+
+	/// Share of orders shipped outside the United States.
+	measure 'International Orders %' = DIVIDE ( CALCULATE ( [Orders], KEEPFILTERS ( Data[Market] = "International" ) ), [Orders] )
+		formatString: 0.0%
+		displayFolder: Shipping
+		lineageTag: b6be4030-bfbc-4598-bda1-d92931aaab67
+
+	/// Share of sales (shipping included) from orders shipped outside the United States.
+	measure 'International Sales %' = DIVIDE ( CALCULATE ( [Sales], KEEPFILTERS ( Data[Market] = "International" ) ), [Sales] )
+		formatString: 0.0%
+		displayFolder: Shipping
+		lineageTag: 980eb410-a600-48d2-b2a7-28a5d69490d0
+
+	/// Share of international sales that is shipping fees rather than product revenue.
+	measure 'Shipping % of International Sales' =
+			DIVIDE (
+			    CALCULATE ( [Shipping Revenue], KEEPFILTERS ( Data[Market] = "International" ) ),
+			    CALCULATE ( [Sales], KEEPFILTERS ( Data[Market] = "International" ) )
+			)
+		formatString: 0.0%
+		displayFolder: Shipping
+		lineageTag: 84578625-d214-4b0b-921d-6487782ae0b9
+
+	/// Average age of the buyer across orders.
+	measure 'Avg Buyer Age' = AVERAGE ( Data[Buyer Age] )
+		formatString: 0.0
+		displayFolder: Buyers
+		lineageTag: 4ac70ea0-f997-4e54-9a5f-ed76ee6c63cc
+
+	/// Share of orders placed by male buyers.
+	measure 'Male Buyer %' = DIVIDE ( CALCULATE ( [Orders], KEEPFILTERS ( Data[Buyer Gender] = "Male" ) ), [Orders] )
+		formatString: 0.0%
+		displayFolder: Buyers
+		lineageTag: db7fef05-9833-4431-a181-6273d302969a
+
+	/// Proxy for repeat purchasing: share of orders with quantity above 1. The data has no customer ID, so true repeat purchases cannot be measured.
+	measure 'Multi-Unit Order %' = DIVIDE ( CALCULATE ( [Orders], KEEPFILTERS ( Data[Quantity] > 1 ) ), [Orders] )
+		formatString: 0.0%
+		displayFolder: Buyers
+		lineageTag: 1ee8b370-2e0e-42a9-9025-3f8f05e9e32f
+
+	column 'Order ID'
+		dataType: int64
+		formatString: 0
+		lineageTag: 0c916d6c-e697-484e-85ea-d72b43f4c10e
+		summarizeBy: none
+		sourceColumn: Order ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Order Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: c9498d4b-06d3-4652-ab32-532ad37c28f4
+		summarizeBy: none
+		sourceColumn: Order Date
+
+		variation Variation
+			isDefault
+			relationship: 2a4014b0-6a44-469b-b17b-818fff28c056
+			defaultHierarchy: LocalDateTable_3ec40eff-8e57-44f2-b907-05fec648ce5e.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Product ID'
+		dataType: string
+		lineageTag: 3f6fc390-b101-4d33-8c3b-c08002880454
+		summarizeBy: none
+		sourceColumn: Product ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Product Category'
+		dataType: string
+		lineageTag: 560997f3-8b02-448f-840a-a9ba9be84922
+		summarizeBy: none
+		sourceColumn: Product Category
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Buyer Gender'
+		dataType: string
+		lineageTag: 202f2432-1e55-40db-ae60-8167f5714f8f
+		summarizeBy: none
+		sourceColumn: Buyer Gender
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Buyer Age'
+		dataType: int64
+		formatString: 0
+		lineageTag: 4ce1c9cf-899e-463c-8254-cd75ec7dbd87
+		summarizeBy: none
+		sourceColumn: Buyer Age
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Order Location'
+		dataType: string
+		lineageTag: 86901aac-b114-4d31-8815-b69497981d56
+		dataCategory: City
+		summarizeBy: none
+		sourceColumn: Order Location
+
+		annotation SummarizationSetBy = Automatic
+
+	column Latitude
+		dataType: double
+		lineageTag: 1fcc98d4-155d-4a60-a91f-b11491bf3e4c
+		dataCategory: Latitude
+		summarizeBy: none
+		sourceColumn: Latitude
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Longitude
+		dataType: double
+		lineageTag: ae55a531-5b7a-4548-92a3-cfc09154a2cf
+		dataCategory: Longitude
+		summarizeBy: none
+		sourceColumn: Longitude
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'International Shipping'
+		dataType: string
+		lineageTag: 7f161264-f318-4bf2-bc07-11382a1f349c
+		summarizeBy: none
+		sourceColumn: International Shipping
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sales Price'
+		dataType: int64
+		formatString: 0
+		lineageTag: 37b422fc-c32d-4d36-b947-f243bde5b94c
+		summarizeBy: none
+		sourceColumn: Sales Price
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Shipping Charges'
+		dataType: int64
+		formatString: 0
+		lineageTag: d7294755-4dee-49ca-9491-29772ce6e489
+		summarizeBy: none
+		sourceColumn: Shipping Charges
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sales per Unit'
+		dataType: int64
+		formatString: 0
+		lineageTag: 26ae17e1-fcd6-4cec-966a-ca15578f2bcf
+		summarizeBy: none
+		sourceColumn: Sales per Unit
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quantity
+		dataType: int64
+		formatString: 0
+		lineageTag: 2dd5f416-408c-4b7e-8c8c-a098e1a262f3
+		summarizeBy: none
+		sourceColumn: Quantity
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Total Sales'
+		dataType: int64
+		formatString: 0
+		lineageTag: 5d75fc52-1c62-4e5a-b843-6be12e599172
+		summarizeBy: sum
+		sourceColumn: Total Sales
+
+		annotation SummarizationSetBy = Automatic
+
+	column Rating
+		dataType: int64
+		formatString: 0
+		lineageTag: 90b47297-a50a-455a-bfcd-9e36bb0ff97c
+		summarizeBy: none
+		sourceColumn: Rating
+
+		annotation SummarizationSetBy = Automatic
+
+	column Review
+		dataType: string
+		lineageTag: 206f70d4-4438-4a16-a7da-8330defeb977
+		summarizeBy: none
+		sourceColumn: Review
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Country of the order city, derived from Order Location.
+	column Country =
+			SWITCH (
+			    TRUE (),
+			    Data[Order Location] IN { "London", "Manchester", "Liverpool", "Cardiff", "Glasgow" }, "United Kingdom",
+			    Data[Order Location] = "Dublin", "Ireland",
+			    Data[Order Location] IN { "Toronto", "Montreal" }, "Canada",
+			    Data[Order Location] = "Paris", "France",
+			    Data[Order Location] IN { "Mumbai", "New Delhi" }, "India",
+			    Data[Order Location] = "Sydney", "Australia",
+			    "United States"
+			)
+		dataType: string
+		lineageTag: c6be32f2-56c2-4947-8565-05d6cbad80e0
+		dataCategory: Country
+		summarizeBy: none
+
+	/// Domestic (United States, no shipping fee) or International, from the International Shipping flag.
+	column Market = IF ( Data[International Shipping] = "Yes", "International", "Domestic" )
+		dataType: string
+		lineageTag: 6b20d648-74ec-428c-9119-9573a5925807
+		summarizeBy: none
+
+	/// Buyer age band: 18-20, 21-25, 26-30, 31-35.
+	column 'Age Group' =
+			SWITCH (
+			    TRUE (),
+			    Data[Buyer Age] <= 20, "18-20",
+			    Data[Buyer Age] <= 25, "21-25",
+			    Data[Buyer Age] <= 30, "26-30",
+			    "31-35"
+			)
+		dataType: string
+		lineageTag: 5655e346-1a7a-4e50-afb5-b0ce1cfb34fd
+		summarizeBy: none
+
+	/// Sort order for Sentiment.
+	column 'Sentiment Order' = SWITCH ( TRUE (), Data[Rating] >= 4, 1, Data[Rating] = 3, 2, 3 )
+		dataType: int64
+		isHidden
+		lineageTag: d3827fdb-52aa-48b4-8a52-744aee160b38
+		summarizeBy: none
+
+	/// Positive for ratings 4-5, Neutral for 3, Negative for 1-2.
+	column Sentiment = SWITCH ( TRUE (), Data[Rating] >= 4, "Positive", Data[Rating] = 3, "Neutral", "Negative" )
+		dataType: string
+		lineageTag: bf699cd2-6742-4993-8fe4-60a3b01b3678
+		summarizeBy: none
+		sortByColumn: 'Sentiment Order'
+
+	/// Topic of the review sentence: Delivery, Quality, Design, Price and Discounts, or General.
+	column 'Review Theme' =
+			VAR r = LOWER ( Data[Review] )
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        CONTAINSSTRING ( r, "deliver" ) || CONTAINSSTRING ( r, "handling" ) || CONTAINSSTRING ( r, "delays" ), "Delivery",
+			        CONTAINSSTRING ( r, "discount" ) || CONTAINSSTRING ( r, "affordable" ) || CONTAINSSTRING ( r, "money" ) || CONTAINSSTRING ( r, "promotion" ), "Price and Discounts",
+			        CONTAINSSTRING ( r, "design" ) || CONTAINSSTRING ( r, "detailing" ), "Design",
+			        CONTAINSSTRING ( r, "quality" ) || CONTAINSSTRING ( r, "craftsmanship" ), "Quality",
+			        "General"
+			    )
+		dataType: string
+		lineageTag: f4ab7e07-817b-4f63-a0ac-88455bf1ec8a
+		summarizeBy: none
+
+	/// Single unit when Quantity is 1, otherwise Multi-unit.
+	column 'Order Size' = IF ( Data[Quantity] > 1, "Multi-unit", "Single unit" )
+		dataType: string
+		lineageTag: 106781ac-fef4-49b7-8816-242065475b63
+		summarizeBy: none
+
+	partition Data = m
+		mode: import
+		source =
+				let
+				  Source = Excel.Workbook(File.Contents("C:\Users\Sphesihle Sibiya\Power Bi\Merchandise Sales Dataset\WgsUBfjr5GWNOHRpFmBP6oKmUDm5T53pipHgRQhh\Onyx Data -DataDNA Dataset Challenge - Merchandise Sales Dataset - January 2025.xlsx"), null, true),
+				  #"Navigation 1" = Source{[Item = "Data", Kind = "Sheet"]}[Data],
+				  #"Promoted headers" = Table.PromoteHeaders(#"Navigation 1", [PromoteAllScalars = true]),
+				  #"Changed column type" = Table.TransformColumnTypes(#"Promoted headers", {{"Order ID", Int64.Type}, {"Order Date", type date}, {"Product ID", type text}, {"Product Category", type text}, {"Buyer Gender", type text}, {"Buyer Age", Int64.Type}, {"Order Location", type text}, {"Latitude", type number}, {"Longitude", type number}, {"International Shipping", type text}, {"Sales Price", Int64.Type}, {"Shipping Charges", Int64.Type}, {"Sales per Unit", Int64.Type}, {"Quantity", Int64.Type}, {"Total Sales", Int64.Type}, {"Rating", Int64.Type}, {"Review", type text}})
+				in
+				  #"Changed column type"
+
+	annotation PBI_ResultType = Table
+
